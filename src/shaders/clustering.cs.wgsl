@@ -9,6 +9,21 @@
 //     - Convert these screen and depth bounds into view-space coordinates.
 //     - Store the computed bounding box (AABB) for the cluster.
 
+@group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
+@group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
+@group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
+
+const clusterCountX: u32 = 10;
+const clusterCountY: u32 = 10;
+const clusterCountZ: u32 = 32;
+const clusterCount = clusterCountX * clusterCountY * clusterCountZ
+const MAX_LIGHTS_PER_CLUSTER: u32 = ${maxLightsPerTile};
+const LIGHT_RADIUS: f32 = ${lightRadius};
+
+
+
+
+
 // ------------------------------------
 // Assigning lights to clusters:
 // ------------------------------------

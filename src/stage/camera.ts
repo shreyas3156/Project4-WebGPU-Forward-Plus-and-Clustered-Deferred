@@ -12,7 +12,26 @@ class CameraUniforms {
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
+    set invProjMat(mat: Float32Array) {
+        this.floatView.set(mat, 16);
+    }
+    set viewMat(mat: Float32Array) {
+        this.floatView.set(mat, 32);
+    }
+    set projMat(mat: Float32Array) {
+        this.floatView.set(mat, 48);
+    }
 
+    setScreenSize(width: number, height: number) {
+        this.floatView[64] = width;
+        this.floatView[65] = height;
+    }
+    set nearPlane(near: number) {
+        this.floatView[66] = near;
+    }
+    set farPlane(far: number) {
+        this.floatView[67] = far;
+    }
 }
 
 export class Camera {
@@ -139,7 +158,13 @@ export class Camera {
         this.uniforms.viewProjMat = viewProjMat;
 
         // TODO-2: write to extra buffers needed for light clustering here
-
+        this.uniforms.viewMat = viewMat;
+        this.uniforms.invProjMat = mat4.inverse(this.projMat);
+        this.uniforms.projMat = this.projMat;
+        this.uniforms.setScreenSize(canvas.width, canvas.height);
+        this.uniforms.nearPlane = Camera.nearPlane;
+        this.uniforms.farPlane = Camera.farPlane;
+        
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
