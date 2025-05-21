@@ -27,7 +27,7 @@ fn main(@builtin(global_invocation_id) idx: vec3u) {
     if (any(idx >= numClusters)) {
         return;
     }
-    let linearIdx = idx.x + idx.y * numClusters.x + idx.z * numClusters.x * numClusters.y;
+    let clusterIdx = idx.x + idx.y * numClusters.x + idx.z * numClusters.x * numClusters.y;
     
     // Compute exponential depth split ratio for this cluster slice
     let zNear = cameraUniforms.screenDims[0];
@@ -43,10 +43,10 @@ fn main(@builtin(global_invocation_id) idx: vec3u) {
     let wClipMax = zViewMax * cameraUniforms.projMat[2][3];
 
     // NDC (Normalized Device Coordinates) in XY for this cluster's screen rect
-    let minX_NDC = 2.0 * f32(clusterCoord.x)     / f32(clusterSet.numClusters.x) - 1.0;
-    let maxX_NDC = 2.0 * f32(clusterCoord.x + 1) / f32(clusterSet.numClusters.x) - 1.0;
-    let minY_NDC = 2.0 * f32(clusterCoord.y)     / f32(clusterSet.numClusters.y) - 1.0;
-    let maxY_NDC = 2.0 * f32(clusterCoord.y + 1) / f32(clusterSet.numClusters.y) - 1.0;
+    let minX_NDC = 2.0 * f32(idx.x)     / f32(clusterSet.numClusters.x) - 1.0;
+    let maxX_NDC = 2.0 * f32(idx.x + 1) / f32(clusterSet.numClusters.x) - 1.0;
+    let minY_NDC = 2.0 * f32(idx.y)     / f32(clusterSet.numClusters.y) - 1.0;
+    let maxY_NDC = 2.0 * f32(idx.y + 1) / f32(clusterSet.numClusters.y) - 1.0;
 
     // Reverse projection for each NDC corner to get bounds in clip space
     var minX_clip: f32;
@@ -69,7 +69,7 @@ fn main(@builtin(global_invocation_id) idx: vec3u) {
     let aabbMax = vec3f(maxXY_view, zViewMin);
 
     // Save AABB bounds in cluster buffer for later light assignment
-    let cluster = &clusterSet.clusters[idx];
+    let cluster = &clusterSet.clusters[clusterIdx];
 
     // Reset the light count for this cluster
     var numLightsInCluster: u32 = 0u;
@@ -86,3 +86,57 @@ fn main(@builtin(global_invocation_id) idx: vec3u) {
     }
     (*cluster).numLights = numLightsInCluster;
 }
+
+//     // Calculate cluster Z bounds using exponential partitioning
+//     let sliceZ = f32(idx.z);
+//     let totalZ = f32(numClusters.z);
+//     let logRatio = FAR_CLIP / NEAR_CLIP;
+//     let z0 = NEAR_CLIP * pow(logRatio, sliceZ / totalZ);
+//     let z1 = NEAR_CLIP * pow(logRatio, (sliceZ + 1.0) / totalZ);
+
+//     let viewMin = screenToViewCoords(pixelMin);
+//     let viewMax = screenToViewCoords(pixelMax);
+
+//     // Find AABB for near and far corners
+//     let nearCornerA = z0 / -viewMin.z * viewMin;
+//     let nearCornerB = z0 / -viewMax.z * viewMax;
+//     let farCornerA  = z1 / -viewMin.z * viewMin;
+//     let farCornerB  = z1 / -viewMax.z * viewMax;
+
+//     let minXYZ = min(nearCornerA, farCornerA);
+//     let maxXYZ = max(nearCornerB, farCornerB);
+
+//     (*clusterRef).aabbMin = vec4<f32>(minXYZ, 0.0);
+//     (*clusterRef).aabbMax = vec4<f32>(maxXYZ, 0.0);
+
+
+
+// // ------------------------------------
+// // Assigning lights to clusters:
+// // ------------------------------------
+// // For each cluster:
+// //     - Initialize a counter for the number of lights in this cluster.
+
+// //     For each light:
+// //         - Check if the light intersects with the cluster’s bounding box (AABB).
+// //         - If it does, add the light to the cluster's light list.
+// //         - Stop adding lights if the maximum number of lights is reached.
+
+// //     - Store the number of lights assigned to this cluster.
+
+//     // Find which lights affect this cluster
+//     var lightCount: u32 = 0;
+
+//     let lightsPtr = &lightSet;
+
+//     for (var lid = 0; lid < (*lightsPtr).numLights; lid++) {
+//         let light = (*lightsPtr).lights[lid];
+//         if (sphereAABBOverlap(light.pos, f32(${lightRadius}), minXYZ, maxXYZ)) {
+//             if (lightCount < ${maxLightsPerCluster}) {
+//                 (*clusterRef).lightIndices[lightCount] = lid;
+//                 lightCount += 1;
+//             }
+//         }
+//     }
+//     (*clusterRef).numLights = lightCount;
+// }

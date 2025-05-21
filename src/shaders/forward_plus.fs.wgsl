@@ -61,10 +61,10 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     
     // Accumulate lighting
     var totalLightContrib = vec3f(0, 0, 0);
-    for (var i = 0; i < numActiveLights; i++) {
+    for (var i = 0u; i < numActiveLights; i++) {
         let lightIdx = (*currentCluster).lightIndices[i];
         let light = lightSet.lights[lightIdx];
-        totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
+        totalLightContrib += calculateLightContrib(light, in.pos, normalize(in.nor));
     }
 
     var outColor = diffuseColor.rgb * totalLightContrib;
