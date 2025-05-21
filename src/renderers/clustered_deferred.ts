@@ -31,7 +31,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             position: renderer.device.createTexture({
                 size: [canvasWidth, canvasHeight],
                 format: 'rgba16float',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
             }),
             albedo: renderer.device.createTexture({
                 size: [canvasWidth, canvasHeight],
@@ -41,7 +41,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             normal: renderer.device.createTexture({
                 size: [canvasWidth, canvasHeight],
                 format: 'rgba16float',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
             }),
         };
 
@@ -103,13 +103,27 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             label: "G-buffer bind group layout",
             entries: [
                 {
-                    binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: {}
+                    binding: 0, 
+                    visibility: GPUShaderStage.FRAGMENT, 
+                    storageTexture: {
+                        access: "read-only",
+                        format: "rgba16float",
+                    }
                 },
                 {
-                    binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {}
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {
+                        sampleType: "unfilterable-float"
+                    }
                 },
                 {
-                    binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: {}
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    storageTexture: {
+                        access: "read-only",
+                        format: "rgba16float",
+                    }
                 },
             ],
         });
@@ -185,20 +199,21 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     label: "fullscreen pass vertex shader",
                     code: shaders.clusteredDeferredFullscreenVertSrc,
                 }),
-                entryPoint: "main",
             },
             fragment: {
                 module: renderer.device.createShaderModule({
                     label: "fullscreen pass fragment shader",
                     code: shaders.clusteredDeferredFullscreenFragSrc,
                 }),
-                entryPoint: "main",
                 targets: [
                     {
                         format: renderer.canvasFormat,
                     },
                 ],
             },
+            primitive: {
+                topology: "triangle-strip"
+            }
         });
     }
 
@@ -268,7 +283,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         fullscreenPass.setPipeline(this.fullscreenPipeline);
         fullscreenPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
         fullscreenPass.setBindGroup(1, this.gBufferBindGroup);
-        fullscreenPass.draw(4); // ICHECK Should be 3?
+        fullscreenPass.draw(4);
         fullscreenPass.end();
 
         renderer.device.queue.submit([encoder.finish()]);

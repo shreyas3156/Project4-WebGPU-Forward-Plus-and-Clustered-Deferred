@@ -13,30 +13,21 @@
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
-// Converts a pixel coordinate in screen space to view space (camera-local)
-// fn screenToViewCoords(pixelCoord: vec2<f32>) -> vec3<f32> {
-//     let ndc: vec4<f32> = vec4<f32>((screenCoord / cameraUniforms.screenDims) * 2.0 - 1.0, -1.0, 1.0);
-// // ICHECK
-//     var viewCoord: vec4<f32> = cameraUniforms.invProjMat * ndc;
-//     viewCoord /= viewCoord.w;
-//     return vec3<f32>(viewCoord.xyz);
-// }
-
 // Determines if a sphere / light overlaps an AABB
 fn sphereAABBOverlap(sphereCenter: vec3f, boxMin: vec3f, boxMax: vec3f) -> bool {
     let nearest = clamp(sphereCenter, boxMin, boxMax);
     let d = nearest - sphereCenter;
-    return dot(d, d) <= ${lightRadius ** 2}; // ICHECK: light radius missing from args
+    return dot(d, d) <= ${lightRadius ** 2};
 }
 
 @compute
 @workgroup_size(${clusterWorkgroupSize})
 fn main(@builtin(global_invocation_id) idx: vec3u) {
-    let numClusters = clusterSet.numClusters; // ICHECK: using numclusters instead of old way
+    let numClusters = clusterSet.numClusters;
     if (any(idx >= numClusters)) {
-        return; // ICHECK: using any() - different way to check numClusters?
+        return;
     }
-    let linearIdx = idx.x + idx.y * numClusters.x + idx.z * numClusters.x * numClusters.y;
+    let clusterIdx = idx.x + idx.y * numClusters.x + idx.z * numClusters.x * numClusters.y;
     
     // Compute exponential depth split ratio for this cluster slice
     let zNear = cameraUniforms.screenDims[0];
@@ -51,12 +42,11 @@ fn main(@builtin(global_invocation_id) idx: vec3u) {
     let wClipMin = zViewMin * cameraUniforms.projMat[2][3];
     let wClipMax = zViewMax * cameraUniforms.projMat[2][3];
 
-    // ICHECK: can be refactored to a separate function
     // NDC (Normalized Device Coordinates) in XY for this cluster's screen rect
-    let minX_NDC = 2.0 * f32(clusterCoord.x)     / f32(clusterSet.numClusters.x) - 1.0;
-    let maxX_NDC = 2.0 * f32(clusterCoord.x + 1) / f32(clusterSet.numClusters.x) - 1.0;
-    let minY_NDC = 2.0 * f32(clusterCoord.y)     / f32(clusterSet.numClusters.y) - 1.0;
-    let maxY_NDC = 2.0 * f32(clusterCoord.y + 1) / f32(clusterSet.numClusters.y) - 1.0;
+    let minX_NDC = 2.0 * f32(idx.x)     / f32(clusterSet.numClusters.x) - 1.0;
+    let maxX_NDC = 2.0 * f32(idx.x + 1) / f32(clusterSet.numClusters.x) - 1.0;
+    let minY_NDC = 2.0 * f32(idx.y)     / f32(clusterSet.numClusters.y) - 1.0;
+    let maxY_NDC = 2.0 * f32(idx.y + 1) / f32(clusterSet.numClusters.y) - 1.0;
 
     // Reverse projection for each NDC corner to get bounds in clip space
     var minX_clip: f32;
@@ -79,7 +69,7 @@ fn main(@builtin(global_invocation_id) idx: vec3u) {
     let aabbMax = vec3f(maxXY_view, zViewMin);
 
     // Save AABB bounds in cluster buffer for later light assignment
-    let cluster = &clusterSet.clusters[idx];
+    let cluster = &clusterSet.clusters[clusterIdx];
 
     // Reset the light count for this cluster
     var numLightsInCluster: u32 = 0u;

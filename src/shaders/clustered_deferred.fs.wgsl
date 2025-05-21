@@ -21,11 +21,10 @@ struct FragmentOutput {
 fn main(in: FragmentInput) -> FragmentOutput {
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     // Get albedo from texture
-    // ICHECK :let albedo = textureSample(diffuseTex, diffuseTexSampler, in.uv);
 
     return FragmentOutput(
         vec4f(in.pos, 1.0),
-        vec4f(diffuseColor.rgb, 1.0), //ICHECK difference
+        vec4f(diffuseColor.rgb, 1.0),
         vec4f(in.nor, 1.0)
     );
 }

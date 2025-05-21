@@ -12,9 +12,9 @@
 
 @fragment
 fn main(@builtin(position) screenPos : vec4f) -> @location(0) vec4f {
-    let position = textureLoad(posTexture, vec2i(floor(screenPos.xy))).rgb;
-    let albedo   = textureLoad(albTexture, vec2i(floor(screenPos.xy)), 0).rgb;
-    let normal   = textureLoad(norTexture, vec2i(floor(screenPos.xy))).rgb;
+    let position = textureLoad(positionTexture, vec2i(floor(screenPos.xy))).rgb;
+    let albedo   = textureLoad(albedoTexture, vec2i(floor(screenPos.xy)), 0).rgb;
+    let normal   = textureLoad(normalTexture, vec2i(floor(screenPos.xy))).rgb;
     // Find the cluster for this fragment
     let numClusters = clusterSet.numClusters; 
 
@@ -23,16 +23,16 @@ fn main(@builtin(position) screenPos : vec4f) -> @location(0) vec4f {
     let zFar  = cameraUniforms.screenDims[1];
     let logZ  = zFar / zNear;
 
-    let viewPosition = cameraUniforms.viewMat * vec4<f32>(in.pos, 1.0);
+    let viewPosition = cameraUniforms.viewMat * vec4<f32>(position, 1.0);
     // Transform to clip space, then to normalized device coordinates
-    let clipPosition = cameraUniforms.viewProjMat * vec4<f32>(in.pos, 1.0);
+    let clipPosition = cameraUniforms.viewProjMat * vec4<f32>(position, 1.0);
     let ndcPosition = (clipPosition.xy / clipPosition.w) * 0.5 + 0.5;
 
     // Compute cluster Z slice using logarithmic depth partitioning
     let clusterZ : u32 = u32((log(-viewPosition.z/ zNear) * f32(numClusters.z)) / log(zFar / zNear));
     let clusterX : u32 = u32(ndcPosition.x * f32(numClusters.x));
     let clusterY : u32 = u32(ndcPosition.y * f32(numClusters.y));
-    let clusterIdx = idx.x + idx.y * numClusters.x + idx.z * numClusters.x * numClusters.y;
+    let clusterIdx = clusterX + clusterY * numClusters.x + clusterZ * numClusters.x * numClusters.y;
 
     let cluster = &clusterSet.clusters[clusterIdx];
     var totalLightContrib = vec3f(0, 0, 0);
