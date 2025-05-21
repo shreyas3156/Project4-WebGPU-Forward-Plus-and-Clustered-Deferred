@@ -54,14 +54,14 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     let clusterZ : u32 = u32((log(-viewPosition.z/ zNear) * f32(numClusters.z)) / log(zFar / zNear));
     let clusterX : u32 = u32(ndcPosition.x * f32(numClusters.x));
     let clusterY : u32 = u32(ndcPosition.y * f32(numClusters.y));
-    let clusterIdx = clusterX + clusterY * numClusters.x + clusterZ * numClusters.x * numClusters.y;
+    let clusterIdx = idx.x + idx.y * numClusters.x + idx.z * numClusters.x * numClusters.y;
 
     let currentCluster = &clusterSet.clusters[clusterIdx];
     let numActiveLights: u32 = (*currentCluster).numLights;
     
     // Accumulate lighting
     var totalLightContrib = vec3f(0, 0, 0);
-    for (var i = 0u; i < numActiveLights; i++) {
+    for (var i = 0; i < numActiveLights; i++) {
         let lightIdx = (*currentCluster).lightIndices[i];
         let light = lightSet.lights[lightIdx];
         totalLightContrib += calculateLightContrib(light, in.pos, normalize(in.nor));
