@@ -1,27 +1,52 @@
 WebGL Forward+ and Clustered Deferred Shading
 ======================
 
-**University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
+**University of Pennsylvania, CIS 5650: GPU Programming and Architecture, Project 3**
 
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) **Google Chrome 222.2** on
-  Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
-
-### Live Demo
-
-[![](img/thumb.png)](http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
+* Shreyas Singh
+    * [LinkedIn](https://linkedin.com/in/shreyassinghiitr)
+* Tested on: Apple MacBook Pro, Apple M2 Pro @ 3.49 GHz, 19-core GPU
 
 ### Demo Video/GIF
 
-[![](img/video.mp4)](TODO)
+![](img/WebGPU_Sponza.gif)
 
-### (TODO: Your README)
+### Project Overview
+This project demonstrates three different real-time rendering modes in WebGPU:
 
-*DO NOT* leave the README to the last minute! It is a crucial part of the
-project, and we will not be able to grade you without a good README.
+1. **Naive Forward Rendering**:
+The naive renderer uses a traditional forward pipeline where lighting calculations are performed for every pixel against all lights in the scene. While this method is fairly simple, this approach becomes inefficient as the number of lights increases.
 
-This assignment has a considerable amount of performance analysis compared
-to implementation work. Complete the implementation early to leave time!
+2. **Forward+ Rendering**:
+The Forward+ technique improves performance by dividing the camera frustum into a 3D grid of clusters. A compute shader determines which lights influence each cluster, and each pixel only computes lighting for the lights relevant to its cluster. This reduces unnecessary lighting calculations, especially in scenes with many lights.
+![](img/forwardplus.png)
+
+3. **Clustered Deferred Rendering**:
+Clustered Deferred builds on Forward+ by introducing deferred shading. The first pass writes color, normals, and depth to textures (a G-buffer). In the next pass, lighting is computed only for the lights relevant to the cluster, reconstructing positions from depth. This further separates geometry and lighting, thus optimizing scenes with complex lighting.
+![](img/Clustered_Deferred.png)
+
+The UT allows for toggling between rendering modes and adjust the number of active lights at the top right.
+
+
+### Performance Analysis:
+The table below indicates the rendering time (in ms) with respect to the number of lights in the scene. All tests have been done on the Sponza Atrium model.
+
+| Number of Lights | Naive (ms) | Forward+ (ms) | Clustered Deferred (ms)|
+| ---------------- | ----- | -------- | ------------------ |
+| 256              | 19.0  | 1.7      | 0.6                |
+| 512              | 36.9  | 3.2      | 1.2                |
+| 1024             | 69.3  | 6.8      | 2.2                |
+| 2048             | 150.1 | 15.7     | 4.3                |
+| 4096             | 276.8 | 29.4     | 8.0                |
+
+![](img/comparison.png)
+The inference from the chart can be summarized as: 
+
+ - Naive rendering: Scales linearly with light count and becomes prohibitively slow at high light counts.
+
+- Forward+ Rendering : Cuts per-frame cost by about half compared to Naive, but still scales linearly with a much smaller slope—making it practical up to several thousand lights.
+
+- Clustered Deferred: Further reduces render time, exhibiting similar linear scaling but at an even lower per-light overhead.
 
 ### Credits
 
