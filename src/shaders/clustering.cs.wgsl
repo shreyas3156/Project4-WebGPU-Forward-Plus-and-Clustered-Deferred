@@ -13,19 +13,28 @@
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
+// Converts a pixel coordinate in screen space to view space (camera-local)
+// fn screenToViewCoords(pixelCoord: vec2<f32>) -> vec3<f32> {
+//     let ndc: vec4<f32> = vec4<f32>((screenCoord / cameraUniforms.screenDims) * 2.0 - 1.0, -1.0, 1.0);
+// // ICHECK
+//     var viewCoord: vec4<f32> = cameraUniforms.invProjMat * ndc;
+//     viewCoord /= viewCoord.w;
+//     return vec3<f32>(viewCoord.xyz);
+// }
+
 // Determines if a sphere / light overlaps an AABB
 fn sphereAABBOverlap(sphereCenter: vec3f, boxMin: vec3f, boxMax: vec3f) -> bool {
     let nearest = clamp(sphereCenter, boxMin, boxMax);
     let d = nearest - sphereCenter;
-    return dot(d, d) <= ${lightRadius ** 2};
+    return dot(d, d) <= ${lightRadius ** 2}; // ICHECK: light radius missing from args
 }
 
 @compute
 @workgroup_size(${clusterWorkgroupSize})
 fn main(@builtin(global_invocation_id) idx: vec3u) {
-    let numClusters = clusterSet.numClusters;
+    let numClusters = clusterSet.numClusters; // ICHECK: using numclusters instead of old way
     if (any(idx >= numClusters)) {
-        return;
+        return; // ICHECK: using any() - different way to check numClusters?
     }
     let linearIdx = idx.x + idx.y * numClusters.x + idx.z * numClusters.x * numClusters.y;
     
@@ -42,6 +51,7 @@ fn main(@builtin(global_invocation_id) idx: vec3u) {
     let wClipMin = zViewMin * cameraUniforms.projMat[2][3];
     let wClipMax = zViewMax * cameraUniforms.projMat[2][3];
 
+    // ICHECK: can be refactored to a separate function
     // NDC (Normalized Device Coordinates) in XY for this cluster's screen rect
     let minX_NDC = 2.0 * f32(clusterCoord.x)     / f32(clusterSet.numClusters.x) - 1.0;
     let maxX_NDC = 2.0 * f32(clusterCoord.x + 1) / f32(clusterSet.numClusters.x) - 1.0;
@@ -86,3 +96,57 @@ fn main(@builtin(global_invocation_id) idx: vec3u) {
     }
     (*cluster).numLights = numLightsInCluster;
 }
+
+//     // Calculate cluster Z bounds using exponential partitioning
+//     let sliceZ = f32(idx.z);
+//     let totalZ = f32(numClusters.z);
+//     let logRatio = FAR_CLIP / NEAR_CLIP;
+//     let z0 = NEAR_CLIP * pow(logRatio, sliceZ / totalZ);
+//     let z1 = NEAR_CLIP * pow(logRatio, (sliceZ + 1.0) / totalZ);
+
+//     let viewMin = screenToViewCoords(pixelMin);
+//     let viewMax = screenToViewCoords(pixelMax);
+
+//     // Find AABB for near and far corners
+//     let nearCornerA = z0 / -viewMin.z * viewMin;
+//     let nearCornerB = z0 / -viewMax.z * viewMax;
+//     let farCornerA  = z1 / -viewMin.z * viewMin;
+//     let farCornerB  = z1 / -viewMax.z * viewMax;
+
+//     let minXYZ = min(nearCornerA, farCornerA);
+//     let maxXYZ = max(nearCornerB, farCornerB);
+
+//     (*clusterRef).aabbMin = vec4<f32>(minXYZ, 0.0);
+//     (*clusterRef).aabbMax = vec4<f32>(maxXYZ, 0.0);
+
+
+
+// // ------------------------------------
+// // Assigning lights to clusters:
+// // ------------------------------------
+// // For each cluster:
+// //     - Initialize a counter for the number of lights in this cluster.
+
+// //     For each light:
+// //         - Check if the light intersects with the cluster’s bounding box (AABB).
+// //         - If it does, add the light to the cluster's light list.
+// //         - Stop adding lights if the maximum number of lights is reached.
+
+// //     - Store the number of lights assigned to this cluster.
+
+//     // Find which lights affect this cluster
+//     var lightCount: u32 = 0;
+
+//     let lightsPtr = &lightSet;
+
+//     for (var lid = 0; lid < (*lightsPtr).numLights; lid++) {
+//         let light = (*lightsPtr).lights[lid];
+//         if (sphereAABBOverlap(light.pos, f32(${lightRadius}), minXYZ, maxXYZ)) {
+//             if (lightCount < ${maxLightsPerCluster}) {
+//                 (*clusterRef).lightIndices[lightCount] = lid;
+//                 lightCount += 1;
+//             }
+//         }
+//     }
+//     (*clusterRef).numLights = lightCount;
+// }

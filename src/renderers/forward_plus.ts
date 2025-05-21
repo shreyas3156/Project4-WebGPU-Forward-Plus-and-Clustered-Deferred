@@ -57,7 +57,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             ]
         });
 
-        // Depth texture for the render pass
+        // Depth texture for the render renderPass
         this.depthTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
             format: "depth24plus",
@@ -90,7 +90,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             fragment: {
                 module: renderer.device.createShaderModule({
                     label: "ForwardPlus Fragment Shader",
-                    code: shaders.forwardPlusFragSrc
+                    code: shaders.forwardPlusFragSrc,
                 }),
                 targets: [
                     {
@@ -102,21 +102,21 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     }
 
     override draw() {
-        // TODO-2: run the Forward+ rendering pass:
+        // TODO-2: run the Forward+ rendering renderPass:
         const commandEncoder = renderer.device.createCommandEncoder();
+
+        // - run the main rendering renderPass, using the computed clusters for efficient lighting
+        const canvasTextureView = renderer.context.getCurrentTexture().createView();
 
         // - run the clustering compute shader
         this.lights.doLightClustering(commandEncoder);
 
-        // - run the main rendering pass, using the computed clusters for efficient lighting
-        const swapChainView = renderer.context.getCurrentTexture().createView();
-
-        // begin a render pass using the Forward+ pipeline
-        const pass = commandEncoder.beginRenderPass({
-            label: "ForwardPlus Render Pass",
+        // begin a render renderPass using the Forward+ pipeline
+        const renderPass = commandEncoder.beginRenderPass({
+            label: "ForwardPlus Render renderPass",
             colorAttachments: [
                 {
-                    view: swapChainView,
+                    view: canvasTextureView,
                     clearValue: [0, 0, 0, 0],
                     loadOp: "clear",
                     storeOp: "store"
@@ -129,27 +129,27 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 depthStoreOp: "store"
             }
         });
-        pass.setPipeline(this.forwardPipeline);
+        renderPass.setPipeline(this.forwardPipeline);
 
         // Bind scene-wide resources
-        pass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
+        renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
 
         // Traverse and draw the scene
         this.scene.iterate(
             node => {
-                pass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+                renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
             },
             material => {
-                pass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+                renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
             },
             primitive => {
-                pass.setVertexBuffer(0, primitive.vertexBuffer);
-                pass.setIndexBuffer(primitive.indexBuffer, 'uint32');
-                pass.drawIndexed(primitive.numIndices);
+                renderPass.setVertexBuffer(0, primitive.vertexBuffer);
+                renderPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
+                renderPass.drawIndexed(primitive.numIndices);
             }
         );
 
-        pass.end();
+        renderPass.end();
         renderer.device.queue.submit([commandEncoder.finish()]);
     }
 }

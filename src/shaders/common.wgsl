@@ -28,7 +28,7 @@ struct CameraUniforms {
     viewProjMat: mat4x4f,
     projMat: mat4x4f,
     viewMat: mat4x4f,
-    screenDims: vec2f,
+    screenDims: vec2f, // ICHECK: clipPlanes renamed to screenDims
 }
 
 // CHECKITOUT: this special attenuation function ensures lights don't affect geometry outside the maximum light radius
