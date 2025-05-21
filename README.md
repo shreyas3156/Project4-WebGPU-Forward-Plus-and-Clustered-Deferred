@@ -39,7 +39,7 @@ The table below indicates the rendering time (in ms) with respect to the number 
 | 2048             | 150.1 | 15.7     | 4.3                |
 | 4096             | 276.8 | 29.4     | 8.0                |
 
-![](img/comparison.png)
+![](img/comparison2.png)
 The inference from the chart can be summarized as: 
 
  - Naive rendering: Scales linearly with light count and becomes prohibitively slow at high light counts.
