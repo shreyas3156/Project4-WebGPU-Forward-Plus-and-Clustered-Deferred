@@ -1,9 +1,9 @@
-import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
+import { Mat4, mat4, Vec2, vec2, Vec3, vec3 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 17);
+    readonly buffer = new ArrayBuffer((3 * 16 + 4) * 4);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -12,25 +12,17 @@ class CameraUniforms {
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
-    set invProjMat(mat: Float32Array) {
+    set projMat(mat: Float32Array) {
         this.floatView.set(mat, 16);
     }
     set viewMat(mat: Float32Array) {
         this.floatView.set(mat, 32);
     }
-    set projMat(mat: Float32Array) {
-        this.floatView.set(mat, 48);
-    }
-
-    setScreenSize(width: number, height: number) {
-        this.floatView[64] = width;
-        this.floatView[65] = height;
-    }
     set nearPlane(near: number) {
-        this.floatView[66] = near;
+        this.floatView[48] = near;
     }
     set farPlane(far: number) {
-        this.floatView[67] = far;
+        this.floatView[49] = far;
     }
 }
 
@@ -49,7 +41,7 @@ export class Camera {
     sensitivity: number = 0.15;
 
     static readonly nearPlane = 0.1;
-    static readonly farPlane = 1000;
+    static readonly farPlane = 500;
 
     keys: { [key: string]: boolean } = {};
 
@@ -61,13 +53,16 @@ export class Camera {
         // note that you can add more variables (e.g. inverse proj matrix) to this buffer in later parts of the assignment
 
         this.uniformsBuffer = device.createBuffer({
-            label: "Camera Uniforms Buffer",
+            label: "Camera Uniform Buffer",
             size: this.uniforms.buffer.byteLength,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
 
         this.rotateCamera(0, 0); // set initial camera vectors
+        this.uniforms.projMat = this.projMat;
+        this.uniforms.nearPlane = Camera.nearPlane;
+        this.uniforms.farPlane = Camera.farPlane;
 
         window.addEventListener('keydown', (event) => this.onKeyEvent(event, true));
         window.addEventListener('keyup', (event) => this.onKeyEvent(event, false));
@@ -159,11 +154,7 @@ export class Camera {
 
         // TODO-2: write to extra buffers needed for light clustering here
         this.uniforms.viewMat = viewMat;
-        this.uniforms.invProjMat = mat4.inverse(this.projMat);
-        this.uniforms.projMat = this.projMat;
-        this.uniforms.setScreenSize(canvas.width, canvas.height);
-        this.uniforms.nearPlane = Camera.nearPlane;
-        this.uniforms.farPlane = Camera.farPlane;
+        this.uniforms.viewProjMat = viewProjMat;
         
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);
